@@ -24,6 +24,7 @@
     "date-fns": "^4.1.0",
     "framer-motion": "^12.34.3",
     "gif.js": "^0.2.0",
+    "heic2any": "^0.0.4",
     "lucide-react": "^0.575.0",
     "next": "15.3.7",
     "next-intl": "^4.8.3",

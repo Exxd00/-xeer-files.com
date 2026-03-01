@@ -17,7 +17,8 @@ type ProgressMessage = { type: 'progress'; value: number };
 type DoneMessage = { type: 'done'; pdfBytes: ArrayBuffer };
 type ErrorMessage = { type: 'error'; message: string };
 
-const ctx: DedicatedWorkerGlobalScope = self as any;
+// `self` in a worker is a DedicatedWorkerGlobalScope.
+const ctx: DedicatedWorkerGlobalScope = self as unknown as DedicatedWorkerGlobalScope;
 
 const postProgress = (value: number) => {
   const msg: ProgressMessage = { type: 'progress', value };
@@ -73,7 +74,9 @@ async function compressPdfInWorker(
     const context = canvas.getContext('2d');
     if (!context) throw new Error('Failed to get 2D context from OffscreenCanvas.');
 
-    await page.render({ canvasContext: context as any, viewport }).promise;
+    // pdfjs types are geared towards CanvasRenderingContext2D; OffscreenCanvas uses
+    // OffscreenCanvasRenderingContext2D which is compatible at runtime.
+    await page.render({ canvasContext: context as unknown as CanvasRenderingContext2D, viewport }).promise;
 
     const blob = await canvas.convertToBlob({ type: 'image/jpeg', quality: settings.quality });
     pageJpegBuffers.push(await blob.arrayBuffer());
@@ -117,7 +120,8 @@ ctx.onmessage = async (event: MessageEvent<CompressRequest>) => {
     const out = await compressPdfInWorker(data.buffer, data.compressionLevel, data.fastMode);
     const msg: DoneMessage = { type: 'done', pdfBytes: out };
     ctx.postMessage(msg, [out]);
-  } catch (err: any) {
-    postError(err?.message || 'Unknown worker error');
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown worker error';
+    postError(message);
   }
 };
