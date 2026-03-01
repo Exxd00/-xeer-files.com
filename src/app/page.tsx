@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-import { ChevronDown, FileText, Image, Shield, Sparkles, Clock } from 'lucide-react';
+import { ChevronDown, FileText, Image as ImageIcon, Shield, Sparkles, Clock } from 'lucide-react';
+import NextImage from 'next/image';
 import { Header } from '@/components/layout/Header';
 import { useAppStore } from '@/stores/app-store';
 import { getTranslations } from '@/i18n';
@@ -63,9 +64,13 @@ function MainCard({ type, isExpanded, onToggle, locale }: MainCardProps) {
         aria-expanded={isExpanded}
       >
         {/* Background Image */}
-        <div
-          className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
-          style={{ backgroundImage: `url(${config.image})` }}
+        <NextImage
+          src={config.image}
+          alt={type === 'pdf' ? 'PDF tools' : 'Image tools'}
+          fill
+          priority={type === 'pdf'}
+          sizes="(max-width: 768px) 100vw, 768px"
+          className="absolute inset-0 object-cover transition-transform duration-700 group-hover:scale-110"
         />
 
         {/* Gradient Overlay */}

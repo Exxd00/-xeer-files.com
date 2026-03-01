@@ -1,4 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+/*
+  Fonts are loaded via next/font in src/app/layout.tsx for better performance
+  (self-hosted, no render-blocking @import).
+*/
 
 @tailwind base;
 @tailwind components;
@@ -93,7 +96,7 @@
 
   /* RTL Support */
   [dir="rtl"] {
-    font-family: 'Tajawal', 'Inter', system-ui, sans-serif;
+    font-family: var(--font-arabic), var(--font-sans), system-ui, sans-serif;
   }
 }
 
@@ -104,7 +107,7 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+    font-family: var(--font-sans), system-ui, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 

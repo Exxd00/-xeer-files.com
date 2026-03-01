@@ -6,7 +6,7 @@
   publish = ".next"
 
 [build.environment]
-  NETLIFY_NEXT_PLUGIN_SKIP = "true"
+  # Allow @netlify/plugin-nextjs to run so Next.js features like image optimization work.
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

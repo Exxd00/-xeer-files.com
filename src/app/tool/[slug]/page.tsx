@@ -14,39 +14,10 @@ import { useAppStore } from '@/stores/app-store';
 import { getTranslations } from '@/i18n';
 import { getToolBySlug, tools } from '@/config/tools';
 import { FILE_EXPIRY_MINUTES } from '@/config/plans';
-import {
-  mergePDFs,
-  splitPDF,
-  extractPages,
-  rotatePDF,
-  addPageNumbers,
-  addWatermark,
-  removePages,
-  organizePDF,
-  pdfToImages,
-  cropPDF,
-  signPDF,
-  redactPDF
-} from '@/lib/pdf-utils';
-import { compressPdfWithWorker } from '@/lib/pdf-compress-worker';
-import {
-  resizeImageByPercentage,
-  rotateImage,
-  flipImage,
-  addImageWatermark,
-  convertImageFormat,
-  svgToPng,
-  createMeme,
-  createCollage,
-  downloadImage,
-  downloadAsZip,
-  createAnimatedGif,
-  applyPhotoAdjustments,
-  cropImageWithAspectRatio
-} from '@/lib/image-utils';
 import { smartCompressImage, formatFileSize } from '@/lib/smart-compression';
-import { PDFDocument } from 'pdf-lib';
-import imageCompression from 'browser-image-compression';
+
+// NOTE: Heavy libraries (pdf-lib, pdfjs, browser-image-compression, gif.js, etc.)
+// are loaded lazily via dynamic import inside handlers to keep initial page loads fast.
 
 interface ProcessedFile {
   name: string;
@@ -93,6 +64,27 @@ export default function ToolPage() {
 
   if (!tool) return notFound();
 
+  const loadPDFLib = async () => {
+    return import('pdf-lib');
+  };
+
+  const loadPDFUtils = async () => {
+    return import('@/lib/pdf-utils');
+  };
+
+  const loadPdfCompressWorker = async () => {
+    return import('@/lib/pdf-compress-worker');
+  };
+
+  const loadImageUtils = async () => {
+    return import('@/lib/image-utils');
+  };
+
+  const loadBrowserImageCompression = async () => {
+    const mod = await import('browser-image-compression');
+    return mod.default;
+  };
+
   const parsePageRanges = (rangeStr: string, totalPages: number): { start: number; end: number }[] => {
     const ranges: { start: number; end: number }[] = [];
     const parts = rangeStr.split(',').map(s => s.trim()).filter(s => s);
@@ -120,6 +112,11 @@ export default function ToolPage() {
     fastMode: boolean,
     onProgress: (p: number) => void
   ): Promise<Uint8Array> => {
+    const [{ PDFDocument }, pdfUtils, imageCompression] = await Promise.all([
+      loadPDFLib(),
+      loadPDFUtils(),
+      loadBrowserImageCompression(),
+    ]);
     const qualityMap: Record<string, { scale: number; quality: number; maxSizeMB: number }> = {
       low: { scale: 1.5, quality: 0.85, maxSizeMB: 10 },
       medium: { scale: 1.2, quality: 0.7, maxSizeMB: 5 },
@@ -144,7 +141,7 @@ export default function ToolPage() {
 
     // Convert PDF to images
     onProgress(10);
-    const images = await pdfToImages(buffer, settings.scale, 'jpeg', settings.quality);
+    const images = await pdfUtils.pdfToImages(buffer, settings.scale, 'jpeg', settings.quality);
     onProgress(40);
 
     // Compress each image further
@@ -198,14 +195,16 @@ export default function ToolPage() {
     try {
       // PDF: Merge
       if (tool.id === 'merge') {
+        const pdfUtils = await loadPDFUtils();
         const pdfBuffers = await Promise.all(files.map(async (f, i) => { setProcessingProgress((i / files.length) * 50); return f.file.arrayBuffer(); }));
         setProcessingProgress(50);
-        const mergedPdf = await mergePDFs(pdfBuffers);
+        const mergedPdf = await pdfUtils.mergePDFs(pdfBuffers);
         const blob = new Blob([mergedPdf], { type: 'application/pdf' });
         results.push({ name: 'merged.pdf', url: URL.createObjectURL(blob), blob, type: 'application/pdf' });
       }
       // PDF: Split
       else if (tool.id === 'split') {
+        const [{ PDFDocument }, pdfUtils] = await Promise.all([loadPDFLib(), loadPDFUtils()]);
         const buffer = await files[0].file.arrayBuffer();
         const pdf = await PDFDocument.load(buffer);
         const pageCount = pdf.getPageCount();
@@ -213,12 +212,13 @@ export default function ToolPage() {
           for (let i = 0; i < pageCount; i++) { setProcessingProgress((i / pageCount) * 100); const newPdf = await PDFDocument.create(); const [copiedPage] = await newPdf.copyPages(pdf, [i]); newPdf.addPage(copiedPage); const pdfBytes = await newPdf.save(); const blob = new Blob([pdfBytes], { type: 'application/pdf' }); results.push({ name: `page_${i + 1}.pdf`, url: URL.createObjectURL(blob), blob, type: 'application/pdf' }); }
         } else if (toolOptions.pageRanges) {
           const ranges = parsePageRanges(toolOptions.pageRanges, pageCount);
-          const splitResults = await splitPDF(buffer, ranges);
+          const splitResults = await pdfUtils.splitPDF(buffer, ranges);
           splitResults.forEach((pdfBytes, i) => { const blob = new Blob([pdfBytes], { type: 'application/pdf' }); results.push({ name: `split_${i + 1}.pdf`, url: URL.createObjectURL(blob), blob, type: 'application/pdf' }); });
         }
       }
       // PDF: Organize (reorder pages)
       else if (tool.id === 'organize') {
+        const [{ PDFDocument }, pdfUtils] = await Promise.all([loadPDFLib(), loadPDFUtils()]);
         const buffer = await files[0].file.arrayBuffer();
         const pdf = await PDFDocument.load(buffer);
         const pageCount = pdf.getPageCount();
@@ -234,47 +234,52 @@ export default function ToolPage() {
         }
 
         setProcessingProgress(60);
-        const pdfBytes = await organizePDF(buffer, newOrder);
+        const pdfBytes = await pdfUtils.organizePDF(buffer, newOrder);
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         results.push({ name: 'organized.pdf', url: URL.createObjectURL(blob), blob, type: 'application/pdf' });
       }
       // PDF: Extract/Remove Pages
       else if (tool.id === 'extract-pages' || tool.id === 'remove-pages') {
+        const pdfUtils = await loadPDFUtils();
         const buffer = await files[0].file.arrayBuffer();
         const pages = toolOptions.pageRanges ? parsePageNumbers(toolOptions.pageRanges) : [];
         if (pages.length > 0) {
           setProcessingProgress(50);
-          const pdfBytes = tool.id === 'extract-pages' ? await extractPages(buffer, pages) : await removePages(buffer, pages);
+          const pdfBytes = tool.id === 'extract-pages' ? await pdfUtils.extractPages(buffer, pages) : await pdfUtils.removePages(buffer, pages);
           const blob = new Blob([pdfBytes], { type: 'application/pdf' });
           results.push({ name: tool.id === 'extract-pages' ? 'extracted.pdf' : 'modified.pdf', url: URL.createObjectURL(blob), blob, type: 'application/pdf' });
         }
       }
       // PDF: Rotate
       else if (tool.id === 'rotate') {
+        const pdfUtils = await loadPDFUtils();
         const buffer = await files[0].file.arrayBuffer();
         setProcessingProgress(50);
-        const pdfBytes = await rotatePDF(buffer, toolOptions.rotationAngle || 90);
+        const pdfBytes = await pdfUtils.rotatePDF(buffer, toolOptions.rotationAngle || 90);
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         results.push({ name: 'rotated.pdf', url: URL.createObjectURL(blob), blob, type: 'application/pdf' });
       }
       // PDF: Page Numbers
       else if (tool.id === 'page-numbers') {
+        const pdfUtils = await loadPDFUtils();
         const buffer = await files[0].file.arrayBuffer();
         setProcessingProgress(50);
-        const pdfBytes = await addPageNumbers(buffer, { position: 'bottom-center', format: 'number', startFrom: 1, fontSize: 12, margin: 30 });
+        const pdfBytes = await pdfUtils.addPageNumbers(buffer, { position: 'bottom-center', format: 'number', startFrom: 1, fontSize: 12, margin: 30 });
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         results.push({ name: 'numbered.pdf', url: URL.createObjectURL(blob), blob, type: 'application/pdf' });
       }
       // PDF: Watermark
       else if (tool.id === 'watermark') {
+        const pdfUtils = await loadPDFUtils();
         const buffer = await files[0].file.arrayBuffer();
         setProcessingProgress(50);
-        const pdfBytes = await addWatermark(buffer, { text: toolOptions.watermarkText || 'WATERMARK', position: 'diagonal', opacity: (toolOptions.watermarkOpacity || 50) / 100, fontSize: 60, color: { r: 0.5, g: 0.5, b: 0.5 } });
+        const pdfBytes = await pdfUtils.addWatermark(buffer, { text: toolOptions.watermarkText || 'WATERMARK', position: 'diagonal', opacity: (toolOptions.watermarkOpacity || 50) / 100, fontSize: 60, color: { r: 0.5, g: 0.5, b: 0.5 } });
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         results.push({ name: 'watermarked.pdf', url: URL.createObjectURL(blob), blob, type: 'application/pdf' });
       }
       // PDF: Compress (real compression - converts to images, compresses, converts back)
       else if (tool.id === 'compress') {
+        const { compressPdfWithWorker } = await loadPdfCompressWorker();
         let buffer = await files[0].file.arrayBuffer();
         const originalSize = files[0].file.size;
 
@@ -318,6 +323,7 @@ export default function ToolPage() {
       }
       // PDF: JPG to PDF
       else if (tool.id === 'jpg-to-pdf') {
+        const { PDFDocument } = await loadPDFLib();
         const pdf = await PDFDocument.create();
         for (let i = 0; i < files.length; i++) {
           setProcessingProgress((i / files.length) * 90);
@@ -333,9 +339,10 @@ export default function ToolPage() {
       }
       // PDF: PDF to JPG
       else if (tool.id === 'pdf-to-jpg') {
+        const pdfUtils = await loadPDFUtils();
         const buffer = await files[0].file.arrayBuffer();
         setProcessingProgress(20);
-        const images = await pdfToImages(buffer, 2, 'jpeg', 0.92);
+        const images = await pdfUtils.pdfToImages(buffer, 2, 'jpeg', 0.92);
         setProcessingProgress(80);
         for (const img of images) {
           results.push({
@@ -348,10 +355,11 @@ export default function ToolPage() {
       }
       // PDF: Crop
       else if (tool.id === 'crop') {
+        const pdfUtils = await loadPDFUtils();
         const buffer = await files[0].file.arrayBuffer();
         setProcessingProgress(50);
         const cropMargin = toolOptions.resizePercentage || 20; // Use resize percentage as margin
-        const pdfBytes = await cropPDF(buffer, {
+        const pdfBytes = await pdfUtils.cropPDF(buffer, {
           left: cropMargin,
           right: cropMargin,
           top: cropMargin,
@@ -362,11 +370,12 @@ export default function ToolPage() {
       }
       // PDF: Edit (add text watermark as basic edit)
       else if (tool.id === 'edit') {
+        const pdfUtils = await loadPDFUtils();
         const buffer = await files[0].file.arrayBuffer();
         setProcessingProgress(50);
         // Basic edit: add a text annotation if provided
         if (toolOptions.watermarkText) {
-          const pdfBytes = await addWatermark(buffer, {
+          const pdfBytes = await pdfUtils.addWatermark(buffer, {
             text: toolOptions.watermarkText,
             position: 'center',
             opacity: 1,
@@ -383,10 +392,11 @@ export default function ToolPage() {
       }
       // PDF: Sign
       else if (tool.id === 'sign') {
+        const pdfUtils = await loadPDFUtils();
         const buffer = await files[0].file.arrayBuffer();
         setProcessingProgress(50);
         const signatureText = toolOptions.watermarkText || 'Signature';
-        const pdfBytes = await signPDF(buffer, {
+        const pdfBytes = await pdfUtils.signPDF(buffer, {
           text: signatureText,
           x: 100,
           y: 100,
@@ -398,11 +408,12 @@ export default function ToolPage() {
       }
       // PDF: Redact
       else if (tool.id === 'redact') {
+        const pdfUtils = await loadPDFUtils();
         const buffer = await files[0].file.arrayBuffer();
         setProcessingProgress(50);
         // Default redaction areas - user should be able to specify these
         const redactionSize = toolOptions.resizePercentage || 50;
-        const pdfBytes = await redactPDF(buffer, [{
+        const pdfBytes = await pdfUtils.redactPDF(buffer, [{
           pageNumber: 1,
           x: 50,
           y: 700,
@@ -414,10 +425,11 @@ export default function ToolPage() {
       }
       // PDF: Protect (note: pdf-lib doesn't support encryption, we add a watermark instead)
       else if (tool.id === 'protect') {
+        const pdfUtils = await loadPDFUtils();
         const buffer = await files[0].file.arrayBuffer();
         setProcessingProgress(50);
         // Add a protection watermark as visual indicator
-        const pdfBytes = await addWatermark(buffer, {
+        const pdfBytes = await pdfUtils.addWatermark(buffer, {
           text: 'PROTECTED',
           position: 'diagonal',
           opacity: 0.1,
@@ -429,6 +441,7 @@ export default function ToolPage() {
       }
       // PDF: Unlock (just return the PDF as-is since we can't truly unlock)
       else if (tool.id === 'unlock') {
+        const { PDFDocument } = await loadPDFLib();
         const buffer = await files[0].file.arrayBuffer();
         setProcessingProgress(50);
         const pdf = await PDFDocument.load(buffer, { ignoreEncryption: true });
@@ -457,44 +470,53 @@ export default function ToolPage() {
       }
       // Image: Resize
       else if (tool.id === 'resize-image') {
-        for (let i = 0; i < files.length; i++) { setProcessingProgress((i / files.length) * 100); const result = await resizeImageByPercentage(files[i].file, toolOptions.resizePercentage || 100); results.push({ name: `resized_${i + 1}.${result.format.split('/')[1]}`, url: result.url, blob: result.blob, type: result.format }); }
+        const imageUtils = await loadImageUtils();
+        for (let i = 0; i < files.length; i++) { setProcessingProgress((i / files.length) * 100); const result = await imageUtils.resizeImageByPercentage(files[i].file, toolOptions.resizePercentage || 100); results.push({ name: `resized_${i + 1}.${result.format.split('/')[1]}`, url: result.url, blob: result.blob, type: result.format }); }
       }
       // Image: Rotate
       else if (tool.id === 'rotate-image') {
-        for (let i = 0; i < files.length; i++) { setProcessingProgress((i / files.length) * 100); const result = await rotateImage(files[i].file, toolOptions.rotationAngle || 90); results.push({ name: `rotated_${i + 1}.${result.format.split('/')[1]}`, url: result.url, blob: result.blob, type: result.format }); }
+        const imageUtils = await loadImageUtils();
+        for (let i = 0; i < files.length; i++) { setProcessingProgress((i / files.length) * 100); const result = await imageUtils.rotateImage(files[i].file, toolOptions.rotationAngle || 90); results.push({ name: `rotated_${i + 1}.${result.format.split('/')[1]}`, url: result.url, blob: result.blob, type: result.format }); }
       }
       // Image: Flip
       else if (tool.id === 'flip-image') {
-        for (let i = 0; i < files.length; i++) { setProcessingProgress((i / files.length) * 100); const result = await flipImage(files[i].file, toolOptions.flipDirection || 'horizontal'); results.push({ name: `flipped_${i + 1}.${result.format.split('/')[1]}`, url: result.url, blob: result.blob, type: result.format }); }
+        const imageUtils = await loadImageUtils();
+        for (let i = 0; i < files.length; i++) { setProcessingProgress((i / files.length) * 100); const result = await imageUtils.flipImage(files[i].file, toolOptions.flipDirection || 'horizontal'); results.push({ name: `flipped_${i + 1}.${result.format.split('/')[1]}`, url: result.url, blob: result.blob, type: result.format }); }
       }
       // Image: Watermark
       else if (tool.id === 'watermark-image') {
-        for (let i = 0; i < files.length; i++) { setProcessingProgress((i / files.length) * 100); const result = await addImageWatermark(files[i].file, toolOptions.watermarkText || 'WATERMARK', { opacity: toolOptions.watermarkOpacity || 50, position: 'diagonal' }); results.push({ name: `watermarked_${i + 1}.${result.format.split('/')[1]}`, url: result.url, blob: result.blob, type: result.format }); }
+        const imageUtils = await loadImageUtils();
+        for (let i = 0; i < files.length; i++) { setProcessingProgress((i / files.length) * 100); const result = await imageUtils.addImageWatermark(files[i].file, toolOptions.watermarkText || 'WATERMARK', { opacity: toolOptions.watermarkOpacity || 50, position: 'diagonal' }); results.push({ name: `watermarked_${i + 1}.${result.format.split('/')[1]}`, url: result.url, blob: result.blob, type: result.format }); }
       }
       // Image: Crop
       else if (tool.id === 'crop-image') {
+        const imageUtils = await loadImageUtils();
         const aspectRatio = (toolOptions.aspectRatio as '1:1' | '4:3' | '16:9' | '3:2' | '2:3' | '9:16') || '1:1';
         for (let i = 0; i < files.length; i++) {
           setProcessingProgress((i / files.length) * 100);
-          const result = await cropImageWithAspectRatio(files[i].file, aspectRatio);
+          const result = await imageUtils.cropImageWithAspectRatio(files[i].file, aspectRatio);
           results.push({ name: `cropped_${i + 1}.${result.format.split('/')[1]}`, url: result.url, blob: result.blob, type: result.format });
         }
       }
       // Image: Convert to JPG
       else if (tool.id === 'convert-to-jpg') {
-        for (let i = 0; i < files.length; i++) { setProcessingProgress((i / files.length) * 100); const result = await convertImageFormat(files[i].file, 'image/jpeg', (toolOptions.outputQuality || 85) / 100); results.push({ name: `converted_${i + 1}.jpg`, url: result.url, blob: result.blob, type: 'image/jpeg' }); }
+        const imageUtils = await loadImageUtils();
+        for (let i = 0; i < files.length; i++) { setProcessingProgress((i / files.length) * 100); const result = await imageUtils.convertImageFormat(files[i].file, 'image/jpeg', (toolOptions.outputQuality || 85) / 100); results.push({ name: `converted_${i + 1}.jpg`, url: result.url, blob: result.blob, type: 'image/jpeg' }); }
       }
       // Image: Convert to PNG
       else if (tool.id === 'convert-to-png') {
-        for (let i = 0; i < files.length; i++) { setProcessingProgress((i / files.length) * 100); const result = await convertImageFormat(files[i].file, 'image/png'); results.push({ name: `converted_${i + 1}.png`, url: result.url, blob: result.blob, type: 'image/png' }); }
+        const imageUtils = await loadImageUtils();
+        for (let i = 0; i < files.length; i++) { setProcessingProgress((i / files.length) * 100); const result = await imageUtils.convertImageFormat(files[i].file, 'image/png'); results.push({ name: `converted_${i + 1}.png`, url: result.url, blob: result.blob, type: 'image/png' }); }
       }
       // Image: Convert to WebP
       else if (tool.id === 'convert-to-webp') {
-        for (let i = 0; i < files.length; i++) { setProcessingProgress((i / files.length) * 100); const result = await convertImageFormat(files[i].file, 'image/webp', (toolOptions.outputQuality || 85) / 100); results.push({ name: `converted_${i + 1}.webp`, url: result.url, blob: result.blob, type: 'image/webp' }); }
+        const imageUtils = await loadImageUtils();
+        for (let i = 0; i < files.length; i++) { setProcessingProgress((i / files.length) * 100); const result = await imageUtils.convertImageFormat(files[i].file, 'image/webp', (toolOptions.outputQuality || 85) / 100); results.push({ name: `converted_${i + 1}.webp`, url: result.url, blob: result.blob, type: 'image/webp' }); }
       }
       // Image: SVG to PNG
       else if (tool.id === 'svg-to-png') {
-        for (let i = 0; i < files.length; i++) { setProcessingProgress((i / files.length) * 100); const result = await svgToPng(files[i].file, 2); results.push({ name: `converted_${i + 1}.png`, url: result.url, blob: result.blob, type: 'image/png' }); }
+        const imageUtils = await loadImageUtils();
+        for (let i = 0; i < files.length; i++) { setProcessingProgress((i / files.length) * 100); const result = await imageUtils.svgToPng(files[i].file, 2); results.push({ name: `converted_${i + 1}.png`, url: result.url, blob: result.blob, type: 'image/png' }); }
       }
       // Image: HEIC to JPG
       else if (tool.id === 'heic-to-jpg') {
@@ -503,29 +525,33 @@ export default function ToolPage() {
       }
       // Image: Meme Generator
       else if (tool.id === 'meme-generator') {
+        const imageUtils = await loadImageUtils();
         setProcessingProgress(50);
-        const result = await createMeme(files[0].file, toolOptions.watermarkText || 'TOP TEXT', 'BOTTOM TEXT');
+        const result = await imageUtils.createMeme(files[0].file, toolOptions.watermarkText || 'TOP TEXT', 'BOTTOM TEXT');
         results.push({ name: 'meme.jpg', url: result.url, blob: result.blob, type: 'image/jpeg' });
       }
       // Image: Collage
       else if (tool.id === 'collage-maker') {
+        const imageUtils = await loadImageUtils();
         setProcessingProgress(50);
-        const result = await createCollage(files.map(f => f.file), 'grid');
+        const result = await imageUtils.createCollage(files.map(f => f.file), 'grid');
         results.push({ name: 'collage.jpg', url: result.url, blob: result.blob, type: 'image/jpeg' });
       }
       // Image: GIF Maker
       else if (tool.id === 'gif-maker') {
+        const imageUtils = await loadImageUtils();
         setProcessingProgress(30);
         const delay = (toolOptions.resizePercentage || 50) * 10; // Use resize percentage as delay (100-1000ms)
-        const result = await createAnimatedGif(files.map(f => f.file), { delay });
+        const result = await imageUtils.createAnimatedGif(files.map(f => f.file), { delay });
         results.push({ name: 'animation.gif', url: result.url, blob: result.blob, type: 'image/gif' });
       }
       // Image: Photo Editor
       else if (tool.id === 'photo-editor') {
+        const imageUtils = await loadImageUtils();
         setProcessingProgress(30);
         for (let i = 0; i < files.length; i++) {
           setProcessingProgress(30 + (i / files.length) * 60);
-          const result = await applyPhotoAdjustments(files[i].file, {
+          const result = await imageUtils.applyPhotoAdjustments(files[i].file, {
             brightness: (toolOptions.resizePercentage || 100) - 100, // Map to -100 to 100
             contrast: 0,
             saturation: 0,
@@ -559,17 +585,21 @@ export default function ToolPage() {
 
   const handleDownload = (file: ProcessedFile) => {
     if (isIOS()) setShowIOSHelp(true);
-    downloadImage(file.blob, file.name);
+    // Lazy-load download helpers (JSZip, etc.) only when needed
+    loadImageUtils().then((imageUtils) => {
+      imageUtils.downloadImage(file.blob, file.name);
+    });
   };
   const handleDownloadAll = async () => {
     if (isIOS()) setShowIOSHelp(true);
     if (processedFiles.length === 1) {
       handleDownload(processedFiles[0]);
     } else {
+      const imageUtils = await loadImageUtils();
       try {
-        await downloadAsZip(processedFiles.map(f => ({ blob: f.blob, filename: f.name })), `${tool.slug}_files.zip`);
+        await imageUtils.downloadAsZip(processedFiles.map(f => ({ blob: f.blob, filename: f.name })), `${tool.slug}_files.zip`);
       } catch {
-        processedFiles.forEach(f => downloadImage(f.blob, f.name));
+        processedFiles.forEach(f => imageUtils.downloadImage(f.blob, f.name));
       }
     }
   };

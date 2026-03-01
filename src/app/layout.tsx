@@ -1,11 +1,34 @@
 import type { Metadata } from 'next';
 import { Toaster } from 'sonner';
 import { Suspense } from 'react';
+import { Inter, Plus_Jakarta_Sans, Tajawal } from 'next/font/google';
 import { CookieConsent } from '@/components/shared/CookieConsent';
 import { AnalyticsProvider } from '@/components/shared/AnalyticsProvider';
 import { ThemeProvider } from '@/components/shared/ThemeProvider';
 import { FloatingBackButton } from '@/components/shared/FloatingBackButton';
 import './globals.css';
+
+const fontSans = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-sans',
+  display: 'swap',
+});
+
+const fontInter = Inter({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700', '800', '900'],
+  variable: '--font-inter',
+  display: 'swap',
+});
+
+// Arabic font is only used when dir="rtl" is applied (see ThemeProvider + globals.css)
+const fontArabic = Tajawal({
+  subsets: ['arabic'],
+  weight: ['400', '500', '700', '800', '900'],
+  variable: '--font-arabic',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: {
@@ -38,13 +61,6 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://xeer-files.com'),
   alternates: {
     canonical: '/',
-    languages: {
-      'en': '/en',
-      'ar': '/ar',
-      'es': '/es',
-      'fr': '/fr',
-      'de': '/de',
-    },
   },
   openGraph: {
     title: 'Xeer Files - Free Online PDF Tools',
@@ -96,10 +112,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${fontSans.variable} ${fontInter.variable} ${fontArabic.variable}`}
+    >
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <meta name="theme-color" content="#7C3AED" />
       </head>
       <body className="antialiased" suppressHydrationWarning>
