@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Cookie, X, Settings } from 'lucide-react';
 import { useAppStore } from '@/stores/app-store';
+import { getTranslations } from '@/i18n';
 import Link from 'next/link';
 
 export function CookieConsent() {
-  const { cookieConsent, setCookieConsent } = useAppStore();
+  const { cookieConsent, setCookieConsent, locale } = useAppStore();
+  const t = getTranslations(locale);
   const [showBanner, setShowBanner] = useState(false);
 
   useEffect(() => {
@@ -45,12 +47,11 @@ export function CookieConsent() {
                   <Cookie className="w-5 h-5 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold mb-1">We use cookies</h3>
+                  <h3 className="font-semibold mb-1">{t.cookieConsent.title}</h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    We use cookies to enhance your experience, analyze site traffic, and for marketing purposes.
-                    By clicking &quot;Accept&quot;, you consent to our use of cookies.
+                    {t.cookieConsent.description}
                     <Link href="/legal/cookies" className="text-primary hover:underline ml-1">
-                      Learn more
+                      {t.cookieConsent.learnMore}
                     </Link>
                   </p>
                   <div className="flex flex-wrap items-center gap-3">
@@ -58,20 +59,20 @@ export function CookieConsent() {
                       onClick={handleAccept}
                       className="px-6 py-2 rounded-lg btn-primary text-sm"
                     >
-                      Accept All
+                      {t.cookieConsent.acceptAll}
                     </button>
                     <button
                       onClick={handleDecline}
                       className="px-6 py-2 rounded-lg bg-muted text-foreground text-sm hover:bg-muted/80 transition-colors"
                     >
-                      Decline
+                      {t.cookieConsent.decline}
                     </button>
                     <Link
                       href="/legal/cookies"
                       className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
                     >
                       <Settings className="w-4 h-4" />
-                      Manage
+                      {t.cookieConsent.manage}
                     </Link>
                   </div>
                 </div>

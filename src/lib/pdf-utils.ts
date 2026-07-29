@@ -290,8 +290,8 @@ export async function pdfToImages(
   // Dynamic import pdfjs-dist
   const pdfjsLib = await import('pdfjs-dist');
 
-  // Set worker source
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+  // Set worker source (self-hosted, see public/pdf.worker.min.mjs)
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
   const pdf = await pdfjsLib.getDocument({ data: pdfBuffer }).promise;
   const results: { blob: Blob; url: string; pageNumber: number }[] = [];

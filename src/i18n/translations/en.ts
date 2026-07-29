@@ -1,4 +1,11 @@
 export const en = {
+  // Welcome Splash (shown once on first visit)
+  welcome: {
+    title: 'XEER FILES',
+    message: 'Your language is ready. Not just translated - built for you.',
+    continue: 'Continue',
+  },
+
   // Navigation
   nav: {
     home: 'Home',
@@ -11,12 +18,17 @@ export const en = {
     logout: 'Logout',
   },
 
-  // Hero Section
+  // Hero Section (homepage)
   hero: {
-    title: 'Every PDF tool you need',
-    subtitle: 'in one place',
-    description: 'Merge, split, compress, convert, rotate, unlock and watermark PDFs with ease. All tools are free and easy to use!',
-    cta: 'Explore Tools',
+    tagline: '{count} Free Tools for PDF & Images',
+    secure: 'Secure & Private',
+    instant: 'Instant Processing',
+    free: '100% Free',
+    pdfToolsTitle: 'PDF Tools',
+    pdfToolsDesc: 'Merge, Split, Compress, Convert & More',
+    imageToolsTitle: 'Image Tools',
+    imageToolsDesc: 'Compress, Resize, Convert & Edit',
+    toolsSuffix: 'tools',
   },
 
   // Tools
@@ -159,8 +171,19 @@ export const en = {
     aiRequests: 'AI requests today',
   },
 
+  // Cookie Consent Banner
+  cookieConsent: {
+    title: 'We use cookies',
+    description: 'We use cookies to enhance your experience, analyze site traffic, and for marketing purposes. By clicking "Accept", you consent to our use of cookies.',
+    learnMore: 'Learn more',
+    acceptAll: 'Accept All',
+    decline: 'Decline',
+    manage: 'Manage',
+  },
+
   // Footer
   footer: {
+    tagline: 'Professional PDF tools for everyone. Fast, secure, and easy to use.',
     product: 'Product',
     resources: 'Resources',
     company: 'Company',

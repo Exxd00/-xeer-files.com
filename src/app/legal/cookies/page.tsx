@@ -110,7 +110,6 @@ export default function CookiesPage() {
                   </p>
                   <ul>
                     <li>Google Analytics (analytics)</li>
-                    <li>Stripe (payment processing)</li>
                     <li>Cloudflare (security)</li>
                   </ul>
 

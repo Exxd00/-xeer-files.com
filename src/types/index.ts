@@ -10,10 +10,6 @@ export interface Tool {
   isPremium: boolean;
   isAI: boolean;
   processingType: 'client' | 'worker';
-  maxFileSize: {
-    free: number; // in MB
-    premium: number;
-  };
   acceptedFormats: string[];
   outputFormat: string;
 }

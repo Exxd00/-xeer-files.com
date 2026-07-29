@@ -92,8 +92,6 @@ export default function PrivacyPage() {
                   <h2>6. Third-Party Services</h2>
                   <p>We use the following third-party services:</p>
                   <ul>
-                    <li>Supabase for authentication and data storage</li>
-                    <li>Stripe for payment processing</li>
                     <li>Google Analytics for anonymized usage analytics</li>
                     <li>Cloudflare for security and performance</li>
                   </ul>

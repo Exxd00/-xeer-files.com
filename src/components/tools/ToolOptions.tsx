@@ -489,7 +489,7 @@ export function ToolOptions({ tool, options, onChange, locale }: Props) {
 
         <div className="p-4 rounded-xl bg-gray-800/50 border border-gray-700">
           <p className="text-xs text-gray-400 mb-2">{t('Preview:', 'معاينة:')}</p>
-          <div className="h-6 bg-black rounded" style={{ width: `${(options.resizePercentage || 50) * 2}px` }} />
+          <div className="h-6 bg-black rounded" style={{ width: `${(options.resizePercentage || 50) * 4}px` }} />
         </div>
 
         <InfoBox type="warning">

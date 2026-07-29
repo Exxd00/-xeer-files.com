@@ -62,7 +62,7 @@ export default function TermsPage() {
                   <h2>6. Premium Subscriptions</h2>
                   <h3>6.1 Billing</h3>
                   <p>
-                    Premium subscriptions are billed monthly or annually. Payments are processed securely through Stripe.
+                    Premium subscriptions are billed monthly or annually.
                   </p>
                   <h3>6.2 Cancellation</h3>
                   <p>

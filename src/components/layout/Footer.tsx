@@ -13,11 +13,6 @@ const footerLinks = {
   ],
   resources: [
     { key: 'faq', href: '/help' },
-    { key: 'blog', href: '/blog' },
-  ],
-  company: [
-    { key: 'about', href: '/about' },
-    { key: 'contact', href: '/contact' },
   ],
   legal: [
     { key: 'privacy', href: '/legal/privacy' },
@@ -42,22 +37,21 @@ export function Footer() {
   };
 
   return (
-    <footer className="bg-card border-t border-border mt-auto">
-      <div className="page-container py-12 md:py-16">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
+    <footer className="bg-[#0a0a0a] border-t border-[#1a1a1a] mt-auto">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 md:py-16">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 rounded-xl gradient-bg flex items-center justify-center shadow-lg shadow-primary/25">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/25">
                 <span className="text-white font-bold text-xl">X</span>
               </div>
-              <span className="text-xl font-bold">
-                <span className="gradient-text">Xeer</span>
-                <span className="text-foreground"> Files</span>
+              <span className="text-violet-400 text-lg tracking-[0.15em] font-light uppercase">
+                XEER FILES
               </span>
             </Link>
-            <p className="text-sm text-muted-foreground mb-4">
-              Professional PDF tools for everyone. Fast, secure, and easy to use.
+            <p className="text-sm text-[#8a8a8a] mb-4">
+              {t.footer.tagline}
             </p>
             <div className="flex items-center gap-3">
               {socialLinks.map((social) => (
@@ -66,7 +60,7 @@ export function Footer() {
                   href={social.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                  className="p-2 rounded-lg text-[#666] hover:text-violet-400 hover:bg-[#151515] transition-colors"
                   aria-label={social.name}
                 >
                   <social.icon className="w-5 h-5" />
@@ -77,7 +71,7 @@ export function Footer() {
 
           {/* Product */}
           <div>
-            <h3 className="text-sm font-semibold text-foreground mb-4">
+            <h3 className="text-sm font-medium text-violet-400 mb-4 tracking-wider uppercase">
               {t.footer.product}
             </h3>
             <ul className="space-y-3">
@@ -85,7 +79,7 @@ export function Footer() {
                 <li key={link.key}>
                   <Link
                     href={link.href}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    className="text-sm text-[#8a8a8a] hover:text-violet-400 transition-colors"
                   >
                     {getLinkLabel(link.key)}
                   </Link>
@@ -96,7 +90,7 @@ export function Footer() {
 
           {/* Resources */}
           <div>
-            <h3 className="text-sm font-semibold text-foreground mb-4">
+            <h3 className="text-sm font-medium text-violet-400 mb-4 tracking-wider uppercase">
               {t.footer.resources}
             </h3>
             <ul className="space-y-3">
@@ -104,26 +98,7 @@ export function Footer() {
                 <li key={link.key}>
                   <Link
                     href={link.href}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {getLinkLabel(link.key)}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Company */}
-          <div>
-            <h3 className="text-sm font-semibold text-foreground mb-4">
-              {t.footer.company}
-            </h3>
-            <ul className="space-y-3">
-              {footerLinks.company.map((link) => (
-                <li key={link.key}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    className="text-sm text-[#8a8a8a] hover:text-violet-400 transition-colors"
                   >
                     {getLinkLabel(link.key)}
                   </Link>
@@ -134,7 +109,7 @@ export function Footer() {
 
           {/* Legal */}
           <div>
-            <h3 className="text-sm font-semibold text-foreground mb-4">
+            <h3 className="text-sm font-medium text-violet-400 mb-4 tracking-wider uppercase">
               {t.footer.legal}
             </h3>
             <ul className="space-y-3">
@@ -142,7 +117,7 @@ export function Footer() {
                 <li key={link.key}>
                   <Link
                     href={link.href}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    className="text-sm text-[#8a8a8a] hover:text-violet-400 transition-colors"
                   >
                     {getLinkLabel(link.key)}
                   </Link>
@@ -153,11 +128,11 @@ export function Footer() {
         </div>
 
         {/* Bottom */}
-        <div className="mt-12 pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground">
+        <div className="mt-12 pt-8 border-t border-[#1a1a1a] flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-sm text-[#666]">
             &copy; {new Date().getFullYear()} Xeer Files. {t.footer.copyright}
           </p>
-          <p className="text-sm text-muted-foreground flex items-center gap-1">
+          <p className="text-sm text-[#666] flex items-center gap-1">
             {t.footer.madeWith} <Heart className="w-4 h-4 text-red-500 fill-red-500" /> for productivity
           </p>
         </div>

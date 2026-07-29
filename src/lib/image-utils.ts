@@ -652,7 +652,7 @@ export async function createAnimatedGif(
       quality,
       width: maxWidth,
       height: maxHeight,
-      workerScript: 'https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js',
+      workerScript: '/gif.worker.js',
     });
 
     // Add each image as a frame

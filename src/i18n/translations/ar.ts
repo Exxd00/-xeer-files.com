@@ -1,6 +1,13 @@
 import type { TranslationKeys } from './en';
 
 export const ar: TranslationKeys = {
+  // Welcome Splash (shown once on first visit)
+  welcome: {
+    title: 'XEER FILES',
+    message: 'لغتك جاهزة. مو مجرد ترجمة - الموقع مبني لك.',
+    continue: 'متابعة',
+  },
+
   // Navigation
   nav: {
     home: 'الرئيسية',
@@ -13,12 +20,17 @@ export const ar: TranslationKeys = {
     logout: 'تسجيل الخروج',
   },
 
-  // Hero Section
+  // Hero Section (homepage)
   hero: {
-    title: 'كل أدوات PDF التي تحتاجها',
-    subtitle: 'في مكان واحد',
-    description: 'دمج، تقسيم، ضغط، تحويل، تدوير، فتح وإضافة علامة مائية لملفات PDF بسهولة. جميع الأدوات مجانية وسهلة الاستخدام!',
-    cta: 'استكشف الأدوات',
+    tagline: '{count} أداة مجانية لملفات PDF والصور',
+    secure: 'آمن ومشفر',
+    instant: 'معالجة فورية',
+    free: 'مجاني 100%',
+    pdfToolsTitle: 'أدوات PDF',
+    pdfToolsDesc: 'دمج، تقسيم، ضغط، تحويل والمزيد',
+    imageToolsTitle: 'أدوات الصور',
+    imageToolsDesc: 'ضغط، تغيير الحجم، تحويل وتعديل',
+    toolsSuffix: 'أداة',
   },
 
   // Tools
@@ -161,8 +173,19 @@ export const ar: TranslationKeys = {
     aiRequests: 'طلبات AI اليوم',
   },
 
+  // Cookie Consent Banner
+  cookieConsent: {
+    title: 'نحن نستخدم ملفات تعريف الارتباط',
+    description: 'نستخدم ملفات تعريف الارتباط لتحسين تجربتك، وتحليل حركة الموقع، ولأغراض تسويقية. بالنقر على "قبول"، فإنك توافق على استخدامنا لملفات تعريف الارتباط.',
+    learnMore: 'اعرف المزيد',
+    acceptAll: 'قبول الكل',
+    decline: 'رفض',
+    manage: 'إدارة',
+  },
+
   // Footer
   footer: {
+    tagline: 'أدوات PDF احترافية للجميع. سريعة وآمنة وسهلة الاستخدام.',
     product: 'المنتج',
     resources: 'المصادر',
     company: 'الشركة',

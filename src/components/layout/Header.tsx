@@ -38,8 +38,10 @@ export function Header() {
             <div className="relative">
               <button
                 className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm tracking-wider text-[#8a8a8a] hover:text-violet-400 transition-colors uppercase"
+                onClick={() => setShowTools(true)}
                 onMouseEnter={() => setShowTools(true)}
                 onMouseLeave={() => setShowTools(false)}
+                aria-expanded={showTools}
               >
                 {t.nav.tools}
                 <ChevronDown className="w-4 h-4" />
@@ -57,7 +59,7 @@ export function Header() {
                     onMouseLeave={() => setShowTools(false)}
                   >
                     <div className="grid grid-cols-3 gap-6">
-                      {toolCategories.slice(0, 6).map((category) => (
+                      {toolCategories.map((category) => (
                         <div key={category.id}>
                           <h3 className="text-sm font-medium text-violet-400 mb-3 tracking-wider uppercase">
                             {category.name}

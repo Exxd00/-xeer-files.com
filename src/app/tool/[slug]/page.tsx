@@ -29,6 +29,29 @@ interface ProcessedFile {
   savingsPercent?: number;
 }
 
+// Tools that actually process every uploaded file (vs. only files[0]).
+const MULTI_FILE_TOOLS = ['merge', 'jpg-to-pdf', 'collage-maker', 'gif-maker', 'compress-image', 'resize-image', 'rotate-image', 'watermark-image', 'flip-image', 'crop-image', 'convert-to-jpg', 'convert-to-png', 'convert-to-webp', 'svg-to-png', 'heic-to-jpg', 'photo-editor'];
+// Of those, tools that combine many inputs into fewer outputs can take a larger batch.
+const BATCH_OUTPUT_TOOLS = ['merge', 'collage-maker', 'gif-maker', 'jpg-to-pdf'];
+
+// resizePercentage is a shared slider reused by unrelated tools (crop margin, redact width,
+// gif frame delay, image resize %) - each needs its own sensible default, not one global value.
+function getDefaultToolOptions(toolId: string | undefined): ToolOptionsState {
+  return {
+    compressionLevel: 'medium',
+    fastMode: false,
+    rotationAngle: 90,
+    splitMode: 'all',
+    watermarkOpacity: 50,
+    resizePercentage: toolId === 'crop' ? 20 : toolId === 'redact' || toolId === 'gif-maker' ? 50 : 100,
+    outputQuality: 85,
+    flipDirection: 'horizontal',
+    watermarkText: '',
+    password: '',
+    pageRanges: '',
+  };
+}
+
 // Check if iOS
 function isIOS(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -49,7 +72,20 @@ export default function ToolPage() {
   const [processedFiles, setProcessedFiles] = useState<ProcessedFile[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [showIOSHelp, setShowIOSHelp] = useState(false);
-  const [toolOptions, setToolOptions] = useState<ToolOptionsState>({ compressionLevel: 'medium', fastMode: false, rotationAngle: 90, splitMode: 'all', watermarkOpacity: 50, resizePercentage: 100, outputQuality: 85, flipDirection: 'horizontal', watermarkText: '', password: '', pageRanges: '' });
+  const [toolOptions, setToolOptions] = useState<ToolOptionsState>(() => getDefaultToolOptions(tool?.id));
+
+  // Reset all per-tool state when the user switches tools (e.g. via Related Tools),
+  // since Next.js reuses this component instance across slug changes instead of remounting it.
+  useEffect(() => {
+    clearFiles();
+    setStep('upload');
+    setToolOptions(getDefaultToolOptions(tool?.id));
+    setProcessedFiles([]);
+    setError(null);
+    setShowIOSHelp(false);
+    setCountdown(FILE_EXPIRY_MINUTES * 60);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -635,7 +671,7 @@ export default function ToolPage() {
           {error && <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3"><AlertCircle className="w-5 h-5 text-red-400" /><p className="text-red-400">{error}</p></motion.div>}
 
           <AnimatePresence mode="wait">
-            {step === 'upload' && (<motion.div key="upload" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}><FileDropzone acceptedFormats={tool.acceptedFormats} maxFiles={['merge', 'collage-maker', 'gif-maker', 'jpg-to-pdf'].includes(tool.id) ? 20 : 10} />{files.length > 0 && <div className="mt-8 text-center"><button onClick={() => setStep('options')} className="px-8 py-3 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 text-white font-medium">{isRtl ? 'التالي' : 'Continue'} <ChevronRight className="w-5 h-5 inline ml-1" /></button></div>}</motion.div>)}
+            {step === 'upload' && (<motion.div key="upload" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}><FileDropzone acceptedFormats={tool.acceptedFormats} maxFiles={MULTI_FILE_TOOLS.includes(tool.id) ? (BATCH_OUTPUT_TOOLS.includes(tool.id) ? 20 : 10) : 1} />{files.length > 0 && <div className="mt-8 text-center"><button onClick={() => setStep('options')} className="px-8 py-3 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 text-white font-medium">{isRtl ? 'التالي' : 'Continue'} <ChevronRight className="w-5 h-5 inline ml-1" /></button></div>}</motion.div>)}
 
             {step === 'options' && (<motion.div key="options" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}><div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-6 mb-6"><ToolOptions tool={tool} options={toolOptions} onChange={setToolOptions} locale={locale} /></div><div className="flex items-center justify-between"><button onClick={() => setStep('upload')} className="px-6 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-gray-800 flex items-center gap-2"><ArrowLeft className="w-4 h-4" />{isRtl ? 'رجوع' : 'Back'}</button><button onClick={handleProcess} className="px-8 py-3 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 text-white font-medium flex items-center gap-2"><Sparkles className="w-5 h-5" />{isRtl ? 'بدء' : 'Start'}</button></div></motion.div>)}
 

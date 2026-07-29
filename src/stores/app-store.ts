@@ -2,6 +2,15 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Locale, Theme, User, UploadedFile, DailyUsage } from '@/types';
 
+// Falls back to whatever middleware detected from Accept-Language for a brand-new
+// visitor (see src/middleware.ts). Overridden by the persisted value below once a
+// user has explicitly picked a language.
+function getInitialLocale(): Locale {
+  if (typeof document === 'undefined') return 'en';
+  const match = document.cookie.match(/(?:^|;\s*)NEXT_LOCALE=([^;]+)/);
+  return (match?.[1] as Locale) || 'en';
+}
+
 interface AppState {
   // Locale
   locale: Locale;
@@ -38,13 +47,17 @@ interface AppState {
   // Mobile menu
   isMobileMenuOpen: boolean;
   setMobileMenuOpen: (isOpen: boolean) => void;
+
+  // Welcome splash (shown once on first visit)
+  hasSeenWelcome: boolean;
+  setHasSeenWelcome: (seen: boolean) => void;
 }
 
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
       // Locale
-      locale: 'en',
+      locale: getInitialLocale(),
       setLocale: (locale) => set({ locale }),
 
       // Theme
@@ -97,6 +110,10 @@ export const useAppStore = create<AppState>()(
       // Mobile menu
       isMobileMenuOpen: false,
       setMobileMenuOpen: (isMobileMenuOpen) => set({ isMobileMenuOpen }),
+
+      // Welcome splash
+      hasSeenWelcome: false,
+      setHasSeenWelcome: (hasSeenWelcome) => set({ hasSeenWelcome }),
     }),
     {
       name: 'xeer-files-storage',
@@ -104,6 +121,7 @@ export const useAppStore = create<AppState>()(
         locale: state.locale,
         theme: state.theme,
         cookieConsent: state.cookieConsent,
+        hasSeenWelcome: state.hasSeenWelcome,
       }),
     }
   )

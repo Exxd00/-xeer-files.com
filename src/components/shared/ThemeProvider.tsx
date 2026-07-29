@@ -24,6 +24,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       root.setAttribute('dir', 'ltr');
       root.setAttribute('lang', locale);
     }
+
+    // Persist so the server can render the correct lang/dir on the next request.
+    document.cookie = `NEXT_LOCALE=${locale}; path=/; max-age=31536000; SameSite=Lax`;
   }, [theme, locale]);
 
   return <>{children}</>;

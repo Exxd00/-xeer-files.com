@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 import { Toaster } from 'sonner';
 import { Suspense } from 'react';
 import { Inter, Plus_Jakarta_Sans, Tajawal } from 'next/font/google';
@@ -6,6 +7,8 @@ import { CookieConsent } from '@/components/shared/CookieConsent';
 import { AnalyticsProvider } from '@/components/shared/AnalyticsProvider';
 import { ThemeProvider } from '@/components/shared/ThemeProvider';
 import { FloatingBackButton } from '@/components/shared/FloatingBackButton';
+import { WelcomeSplash } from '@/components/shared/WelcomeSplash';
+import { ServiceWorkerRegistration } from '@/components/shared/ServiceWorkerRegistration';
 import './globals.css';
 
 const fontSans = Plus_Jakarta_Sans({
@@ -99,21 +102,33 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: '/icons/icon.svg',
+    icon: [
+      { url: '/icons/icon.svg', type: 'image/svg+xml' },
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
     shortcut: '/icons/icon.svg',
-    apple: '/icons/icon.svg',
+    apple: '/icons/apple-touch-icon.png',
   },
   manifest: '/manifest.json',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Read the locale cookie (set by ThemeProvider on change) so the very first
+  // server-rendered HTML already has the correct lang/dir - avoids a flash of
+  // the wrong direction for returning non-English visitors and search crawlers.
+  const cookieStore = await cookies();
+  const locale = cookieStore.get('NEXT_LOCALE')?.value || 'en';
+  const isRtl = locale === 'ar';
+
   return (
     <html
-      lang="en"
+      lang={locale}
+      dir={isRtl ? 'rtl' : 'ltr'}
       suppressHydrationWarning
       className={`${fontSans.variable} ${fontInter.variable} ${fontArabic.variable}`}
     >
@@ -127,6 +142,8 @@ export default function RootLayout({
               {children}
               <FloatingBackButton />
               <CookieConsent />
+              <WelcomeSplash />
+              <ServiceWorkerRegistration />
             </AnalyticsProvider>
           </ThemeProvider>
         </Suspense>

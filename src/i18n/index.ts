@@ -1,24 +1,36 @@
 import { en } from './translations/en';
 import { ar } from './translations/ar';
+import { es } from './translations/es';
+import { fr } from './translations/fr';
+import { de } from './translations/de';
+import { it } from './translations/it';
+import { pt } from './translations/pt';
+import { ru } from './translations/ru';
+import { zh } from './translations/zh';
+import { ja } from './translations/ja';
+import { ko } from './translations/ko';
+import { tr } from './translations/tr';
+import { nl } from './translations/nl';
+import { pl } from './translations/pl';
+import { hi } from './translations/hi';
 import type { Locale } from '@/types';
 
 export const translations: Record<string, typeof en> = {
   en,
   ar,
-  // Add more languages as needed
-  es: en, // Fallback to English for now
-  fr: en,
-  de: en,
-  it: en,
-  pt: en,
-  ru: en,
-  zh: en,
-  ja: en,
-  ko: en,
-  tr: en,
-  nl: en,
-  pl: en,
-  hi: en,
+  es,
+  fr,
+  de,
+  it,
+  pt,
+  ru,
+  zh,
+  ja,
+  ko,
+  tr,
+  nl,
+  pl,
+  hi,
 };
 
 export const getTranslations = (locale: Locale) => {

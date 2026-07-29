@@ -18,21 +18,28 @@ export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || ''
 export const initGA = () => {
   if (typeof window === 'undefined' || !GA_MEASUREMENT_ID) return;
 
-  // Load gtag script
-  const script = document.createElement('script');
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
-  script.async = true;
-  document.head.appendChild(script);
-
   window.dataLayer = window.dataLayer || [];
   window.gtag = function gtag(...args: unknown[]) {
     window.dataLayer.push(args);
   };
 
+  // Consent Mode v2: deny storage by default until the user responds to the
+  // cookie banner. updateConsent() below upgrades this once they accept.
+  window.gtag('consent', 'default', {
+    analytics_storage: 'denied',
+    ad_storage: 'denied',
+  });
+
   window.gtag('config', GA_MEASUREMENT_ID, {
     anonymize_ip: true,
     send_page_view: true,
   });
+
+  // Load gtag script
+  const script = document.createElement('script');
+  script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
+  script.async = true;
+  document.head.appendChild(script);
 };
 
 // Page view tracking
