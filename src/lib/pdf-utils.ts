@@ -497,7 +497,7 @@ export async function getPDFPageDimensions(
 
 // Convert PDF bytes to download URL
 export function createDownloadUrl(pdfBytes: Uint8Array, filename: string): string {
-  const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+  const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
   return URL.createObjectURL(blob);
 }
 

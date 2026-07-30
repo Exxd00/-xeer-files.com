@@ -235,7 +235,7 @@ export default function ToolPage() {
         const pdfBuffers = await Promise.all(files.map(async (f, i) => { setProcessingProgress((i / files.length) * 50); return f.file.arrayBuffer(); }));
         setProcessingProgress(50);
         const mergedPdf = await pdfUtils.mergePDFs(pdfBuffers);
-        const blob = new Blob([mergedPdf], { type: 'application/pdf' });
+        const blob = new Blob([mergedPdf as BlobPart], { type: 'application/pdf' });
         results.push({ name: 'merged.pdf', url: URL.createObjectURL(blob), blob, type: 'application/pdf' });
       }
       // PDF: Split
@@ -245,11 +245,11 @@ export default function ToolPage() {
         const pdf = await PDFDocument.load(buffer);
         const pageCount = pdf.getPageCount();
         if (toolOptions.splitMode === 'all') {
-          for (let i = 0; i < pageCount; i++) { setProcessingProgress((i / pageCount) * 100); const newPdf = await PDFDocument.create(); const [copiedPage] = await newPdf.copyPages(pdf, [i]); newPdf.addPage(copiedPage); const pdfBytes = await newPdf.save(); const blob = new Blob([pdfBytes], { type: 'application/pdf' }); results.push({ name: `page_${i + 1}.pdf`, url: URL.createObjectURL(blob), blob, type: 'application/pdf' }); }
+          for (let i = 0; i < pageCount; i++) { setProcessingProgress((i / pageCount) * 100); const newPdf = await PDFDocument.create(); const [copiedPage] = await newPdf.copyPages(pdf, [i]); newPdf.addPage(copiedPage); const pdfBytes = await newPdf.save(); const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' }); results.push({ name: `page_${i + 1}.pdf`, url: URL.createObjectURL(blob), blob, type: 'application/pdf' }); }
         } else if (toolOptions.pageRanges) {
           const ranges = parsePageRanges(toolOptions.pageRanges, pageCount);
           const splitResults = await pdfUtils.splitPDF(buffer, ranges);
-          splitResults.forEach((pdfBytes, i) => { const blob = new Blob([pdfBytes], { type: 'application/pdf' }); results.push({ name: `split_${i + 1}.pdf`, url: URL.createObjectURL(blob), blob, type: 'application/pdf' }); });
+          splitResults.forEach((pdfBytes, i) => { const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' }); results.push({ name: `split_${i + 1}.pdf`, url: URL.createObjectURL(blob), blob, type: 'application/pdf' }); });
         }
       }
       // PDF: Organize (reorder pages)
@@ -271,7 +271,7 @@ export default function ToolPage() {
 
         setProcessingProgress(60);
         const pdfBytes = await pdfUtils.organizePDF(buffer, newOrder);
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
         results.push({ name: 'organized.pdf', url: URL.createObjectURL(blob), blob, type: 'application/pdf' });
       }
       // PDF: Extract/Remove Pages
@@ -282,7 +282,7 @@ export default function ToolPage() {
         if (pages.length > 0) {
           setProcessingProgress(50);
           const pdfBytes = tool.id === 'extract-pages' ? await pdfUtils.extractPages(buffer, pages) : await pdfUtils.removePages(buffer, pages);
-          const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+          const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
           results.push({ name: tool.id === 'extract-pages' ? 'extracted.pdf' : 'modified.pdf', url: URL.createObjectURL(blob), blob, type: 'application/pdf' });
         }
       }
@@ -292,7 +292,7 @@ export default function ToolPage() {
         const buffer = await files[0].file.arrayBuffer();
         setProcessingProgress(50);
         const pdfBytes = await pdfUtils.rotatePDF(buffer, toolOptions.rotationAngle || 90);
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
         results.push({ name: 'rotated.pdf', url: URL.createObjectURL(blob), blob, type: 'application/pdf' });
       }
       // PDF: Page Numbers
@@ -301,7 +301,7 @@ export default function ToolPage() {
         const buffer = await files[0].file.arrayBuffer();
         setProcessingProgress(50);
         const pdfBytes = await pdfUtils.addPageNumbers(buffer, { position: 'bottom-center', format: 'number', startFrom: 1, fontSize: 12, margin: 30 });
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
         results.push({ name: 'numbered.pdf', url: URL.createObjectURL(blob), blob, type: 'application/pdf' });
       }
       // PDF: Watermark
@@ -310,7 +310,7 @@ export default function ToolPage() {
         const buffer = await files[0].file.arrayBuffer();
         setProcessingProgress(50);
         const pdfBytes = await pdfUtils.addWatermark(buffer, { text: toolOptions.watermarkText || 'WATERMARK', position: 'diagonal', opacity: (toolOptions.watermarkOpacity || 50) / 100, fontSize: 60, color: { r: 0.5, g: 0.5, b: 0.5 } });
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
         results.push({ name: 'watermarked.pdf', url: URL.createObjectURL(blob), blob, type: 'application/pdf' });
       }
       // PDF: Compress (real compression - converts to images, compresses, converts back)
@@ -341,7 +341,7 @@ export default function ToolPage() {
           );
         }
 
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
         const compressedSize = blob.size;
         const savings = Math.round(((originalSize - compressedSize) / originalSize) * 100);
 
@@ -370,7 +370,7 @@ export default function ToolPage() {
           page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
         }
         const pdfBytes = await pdf.save();
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
         results.push({ name: 'converted.pdf', url: URL.createObjectURL(blob), blob, type: 'application/pdf' });
       }
       // PDF: PDF to JPG
@@ -401,7 +401,7 @@ export default function ToolPage() {
           top: cropMargin,
           bottom: cropMargin
         });
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
         results.push({ name: 'cropped.pdf', url: URL.createObjectURL(blob), blob, type: 'application/pdf' });
       }
       // PDF: Edit (add text watermark as basic edit)
@@ -418,7 +418,7 @@ export default function ToolPage() {
             fontSize: 24,
             color: { r: 0, g: 0, b: 0 }
           });
-          const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+          const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
           results.push({ name: 'edited.pdf', url: URL.createObjectURL(blob), blob, type: 'application/pdf' });
         } else {
           // Just return the original if no edits specified
@@ -439,7 +439,7 @@ export default function ToolPage() {
           fontSize: 24,
           pageNumber: 1
         });
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
         results.push({ name: 'signed.pdf', url: URL.createObjectURL(blob), blob, type: 'application/pdf' });
       }
       // PDF: Redact
@@ -456,7 +456,7 @@ export default function ToolPage() {
           width: redactionSize * 4,
           height: 30
         }]);
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
         results.push({ name: 'redacted.pdf', url: URL.createObjectURL(blob), blob, type: 'application/pdf' });
       }
       // PDF: Protect (note: pdf-lib doesn't support encryption, we add a watermark instead)
@@ -472,7 +472,7 @@ export default function ToolPage() {
           fontSize: 80,
           color: { r: 0.8, g: 0, b: 0 }
         });
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
         results.push({ name: 'protected.pdf', url: URL.createObjectURL(blob), blob, type: 'application/pdf' });
       }
       // PDF: Unlock (just return the PDF as-is since we can't truly unlock)
@@ -482,7 +482,7 @@ export default function ToolPage() {
         setProcessingProgress(50);
         const pdf = await PDFDocument.load(buffer, { ignoreEncryption: true });
         const pdfBytes = await pdf.save();
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
         results.push({ name: 'unlocked.pdf', url: URL.createObjectURL(blob), blob, type: 'application/pdf' });
       }
       // Image: Compress (use smartCompressImage for real compression)

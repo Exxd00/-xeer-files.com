@@ -50,8 +50,9 @@ async function compressPdfInWorker(
   const pdfjsLib = await import('pdfjs-dist');
   const { PDFDocument } = await import('pdf-lib');
 
-  // Avoid nested workers inside a worker.
-  const loadingTask = pdfjsLib.getDocument({ data: buffer, disableWorker: true });
+  // Note: `disableWorker` was removed from pdfjs-dist's types/API; modern versions
+  // manage worker threads internally, including when already running inside a worker.
+  const loadingTask = pdfjsLib.getDocument({ data: buffer });
   const pdf = await loadingTask.promise;
 
   let settings = qualityMap[compressionLevel] || qualityMap.medium;
@@ -75,8 +76,10 @@ async function compressPdfInWorker(
     if (!context) throw new Error('Failed to get 2D context from OffscreenCanvas.');
 
     // pdfjs types are geared towards CanvasRenderingContext2D; OffscreenCanvas uses
-    // OffscreenCanvasRenderingContext2D which is compatible at runtime.
-    await page.render({ canvasContext: context as unknown as CanvasRenderingContext2D, viewport }).promise;
+    // OffscreenCanvasRenderingContext2D which is compatible at runtime. `canvas: null`
+    // tells pdfjs to render via canvasContext only (required since pdfjs-dist made
+    // `canvas` a mandatory RenderParameters field).
+    await page.render({ canvas: null, canvasContext: context as unknown as CanvasRenderingContext2D, viewport }).promise;
 
     const blob = await canvas.convertToBlob({ type: 'image/jpeg', quality: settings.quality });
     pageJpegBuffers.push(await blob.arrayBuffer());
@@ -109,7 +112,7 @@ async function compressPdfInWorker(
   const pdfBytes = await newPdf.save({ useObjectStreams: true });
 
   // Return a transferable ArrayBuffer with exact length.
-  return pdfBytes.buffer.slice(pdfBytes.byteOffset, pdfBytes.byteOffset + pdfBytes.byteLength);
+  return pdfBytes.buffer.slice(pdfBytes.byteOffset, pdfBytes.byteOffset + pdfBytes.byteLength) as ArrayBuffer;
 }
 
 ctx.onmessage = async (event: MessageEvent<CompressRequest>) => {
